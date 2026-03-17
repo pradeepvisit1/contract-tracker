@@ -1,0 +1,1317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#1a3a2a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>ContractLedger</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap');
+
+  :root {
+    --bg: #0f1f16;
+    --bg2: #162b1e;
+    --bg3: #1e3829;
+    --card: #1a2f22;
+    --border: #2d4a38;
+    --accent: #4ade80;
+    --accent2: #22c55e;
+    --warn: #fbbf24;
+    --danger: #f87171;
+    --text: #e8f5ed;
+    --text2: #9dbfa8;
+    --text3: #6b9678;
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'Inter', sans-serif;
+    --display: 'Syne', sans-serif;
+    --radius: 12px;
+    --tab-h: 60px;
+    --header-h: 60px;
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 14px;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* HEADER */
+  .header {
+    position: fixed; top:0; left:0; right:0; z-index:100;
+    height: var(--header-h);
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 16px;
+  }
+  .header-title {
+    font-family: var(--display);
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--accent);
+    letter-spacing: -0.5px;
+  }
+  .header-proj {
+    font-size: 11px;
+    color: var(--text3);
+    font-family: var(--mono);
+  }
+  .header-actions { display:flex; gap:8px; }
+  .icon-btn {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    width: 36px; height: 36px;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; color: var(--text2); font-size:16px;
+    transition: all .15s;
+  }
+  .icon-btn:hover { background:var(--border); color:var(--text); }
+
+  /* TABS */
+  .tabs {
+    position: fixed; bottom:0; left:0; right:0; z-index:100;
+    height: var(--tab-h);
+    background: var(--bg2);
+    border-top: 1px solid var(--border);
+    display: flex;
+  }
+  .tab {
+    flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:3px; cursor:pointer; color: var(--text3);
+    font-size:10px; font-family:var(--sans); font-weight:500;
+    transition: color .15s; letter-spacing:.3px;
+    border:none; background:none;
+  }
+  .tab.active { color: var(--accent); }
+  .tab-icon { font-size:20px; line-height:1; }
+
+  /* CONTENT */
+  .content {
+    margin-top: var(--header-h);
+    margin-bottom: var(--tab-h);
+    padding: 16px;
+    min-height: calc(100vh - var(--header-h) - var(--tab-h));
+  }
+  .page { display:none; }
+  .page.active { display:block; }
+
+  /* CARDS */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px;
+    margin-bottom: 12px;
+  }
+  .card-row { display:flex; justify-content:space-between; align-items:center; }
+  .card-label { font-size:11px; color:var(--text3); font-family:var(--mono); text-transform:uppercase; letter-spacing:.5px; }
+  .card-value { font-family:var(--mono); font-weight:500; font-size:15px; }
+  .card-title { font-family:var(--display); font-weight:700; font-size:16px; margin-bottom:6px; }
+  .card-sub { font-size:12px; color:var(--text2); }
+
+  /* STAT GRID */
+  .stat-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px; }
+  .stat-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 14px 12px;
+  }
+  .stat-label { font-size:10px; color:var(--text3); font-family:var(--mono); text-transform:uppercase; letter-spacing:.5px; margin-bottom:6px; }
+  .stat-value { font-family:var(--mono); font-weight:500; font-size:18px; color:var(--text); }
+  .stat-value.green { color:var(--accent); }
+  .stat-value.warn { color:var(--warn); }
+  .stat-value.danger { color:var(--danger); }
+
+  /* FORMS */
+  .form-section { margin-bottom:16px; }
+  .form-label { font-size:11px; color:var(--text3); font-family:var(--mono); text-transform:uppercase; letter-spacing:.5px; margin-bottom:6px; display:block; }
+  .form-input, .form-select, .form-textarea {
+    width:100%; background:var(--bg3); border:1px solid var(--border);
+    border-radius:8px; padding:10px 12px; color:var(--text);
+    font-family:var(--sans); font-size:14px; outline:none;
+    transition: border-color .15s;
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus { border-color:var(--accent); }
+  .form-select option { background:var(--bg3); }
+  .form-textarea { min-height:70px; resize:vertical; }
+  .form-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+
+  /* BUTTONS */
+  .btn {
+    border:none; border-radius:8px; padding:11px 16px;
+    font-family:var(--display); font-weight:700; font-size:13px;
+    cursor:pointer; transition: all .15s; letter-spacing:.3px;
+    text-transform:uppercase;
+  }
+  .btn-primary { background:var(--accent2); color:#0a1f10; }
+  .btn-primary:hover { background:var(--accent); }
+  .btn-danger { background:#7f1d1d; color:#fca5a5; border:1px solid #991b1b; }
+  .btn-outline { background:transparent; color:var(--text2); border:1px solid var(--border); }
+  .btn-outline:hover { border-color:var(--accent); color:var(--accent); }
+  .btn-full { width:100%; }
+  .btn-sm { padding:7px 12px; font-size:11px; }
+
+  /* BADGE */
+  .badge {
+    display:inline-block; padding:3px 8px; border-radius:20px;
+    font-size:10px; font-family:var(--mono); font-weight:500;
+    text-transform:uppercase; letter-spacing:.3px;
+  }
+  .badge-green { background:#14532d; color:#86efac; }
+  .badge-yellow { background:#78350f; color:#fde68a; }
+  .badge-red { background:#7f1d1d; color:#fca5a5; }
+  .badge-blue { background:#1e3a5f; color:#93c5fd; }
+
+  /* LIST ITEMS */
+  .list-item {
+    background:var(--card); border:1px solid var(--border);
+    border-radius:var(--radius); padding:12px 14px; margin-bottom:8px;
+    display:flex; justify-content:space-between; align-items:flex-start;
+  }
+  .list-item-left { flex:1; }
+  .list-item-right { text-align:right; }
+  .list-item-title { font-weight:600; font-size:14px; margin-bottom:3px; }
+  .list-item-sub { font-size:12px; color:var(--text2); }
+  .list-item-amount { font-family:var(--mono); font-weight:500; color:var(--warn); font-size:15px; }
+  .list-item-amount.green { color:var(--accent); }
+  .list-item-date { font-size:10px; color:var(--text3); font-family:var(--mono); margin-top:2px; }
+
+  /* SECTION HEADER */
+  .sec-header {
+    display:flex; justify-content:space-between; align-items:center;
+    margin-bottom:12px; padding-bottom:8px;
+    border-bottom:1px solid var(--border);
+  }
+  .sec-title { font-family:var(--display); font-weight:700; font-size:16px; }
+  .sec-sub { font-size:11px; color:var(--text3); font-family:var(--mono); }
+
+  /* PROGRESS BAR */
+  .progress-wrap { background:var(--bg3); border-radius:4px; height:6px; overflow:hidden; margin:8px 0; }
+  .progress-bar { height:100%; border-radius:4px; transition:width .4s; }
+  .progress-green { background:var(--accent2); }
+  .progress-warn { background:var(--warn); }
+  .progress-danger { background:var(--danger); }
+
+  /* MODAL */
+  .modal-overlay {
+    position:fixed; inset:0; z-index:200;
+    background:rgba(0,0,0,.7); display:none;
+    align-items:flex-end; justify-content:center;
+  }
+  .modal-overlay.open { display:flex; }
+  .modal {
+    background:var(--bg2); border:1px solid var(--border);
+    border-radius: 20px 20px 0 0; width:100%; max-width:480px;
+    padding:20px 16px 32px; max-height:90vh; overflow-y:auto;
+  }
+  .modal-handle { width:36px; height:4px; background:var(--border); border-radius:2px; margin:0 auto 16px; }
+  .modal-title { font-family:var(--display); font-size:18px; font-weight:700; margin-bottom:16px; }
+
+  /* CHART */
+  .chart-wrap { margin:12px 0; }
+  .bar-chart { display:flex; align-items:flex-end; gap:6px; height:100px; }
+  .bar-col { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; }
+  .bar { width:100%; border-radius:4px 4px 0 0; transition:height .4s; min-height:4px; }
+  .bar-label { font-size:9px; color:var(--text3); font-family:var(--mono); text-align:center; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; width:100%; }
+  .bar-val { font-size:9px; color:var(--text2); font-family:var(--mono); }
+
+  /* EMPTY STATE */
+  .empty { text-align:center; padding:40px 16px; color:var(--text3); }
+  .empty-icon { font-size:40px; margin-bottom:12px; }
+  .empty-text { font-size:13px; }
+
+  /* DIVIDER */
+  .divider { border:none; border-top:1px solid var(--border); margin:12px 0; }
+
+  /* TOAST */
+  .toast {
+    position:fixed; bottom:80px; left:50%; transform:translateX(-50%) translateY(20px);
+    background:var(--accent2); color:#0a1f10;
+    padding:10px 20px; border-radius:30px;
+    font-family:var(--display); font-weight:700; font-size:13px;
+    z-index:300; opacity:0; transition:all .3s; pointer-events:none;
+    white-space:nowrap;
+  }
+  .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+  /* PROJECT SELECTOR */
+  .proj-chip {
+    display:inline-flex; align-items:center; gap:6px;
+    background:var(--bg3); border:1px solid var(--border);
+    border-radius:20px; padding:5px 12px; font-size:12px;
+    color:var(--text2); cursor:pointer; margin-right:6px; margin-bottom:6px;
+    transition:all .15s;
+  }
+  .proj-chip.active { background:#14532d; border-color:var(--accent2); color:var(--accent); }
+
+  /* SUMMARY TABLE */
+  .sum-table { width:100%; border-collapse:collapse; }
+  .sum-table td, .sum-table th { padding:8px 10px; font-size:12px; border-bottom:1px solid var(--border); }
+  .sum-table th { font-family:var(--mono); font-size:10px; color:var(--text3); text-transform:uppercase; letter-spacing:.5px; }
+  .sum-table td:last-child, .sum-table th:last-child { text-align:right; font-family:var(--mono); }
+
+  /* REPORT CARD */
+  .report-highlight {
+    background:linear-gradient(135deg,#14532d,#1a3a2a);
+    border:1px solid var(--accent2); border-radius:var(--radius);
+    padding:16px; margin-bottom:12px; text-align:center;
+  }
+  .report-highlight .big { font-family:var(--display); font-size:28px; font-weight:800; color:var(--accent); }
+  .report-highlight .label { font-size:11px; color:var(--text2); font-family:var(--mono); margin-top:4px; }
+
+  .net-positive { color:var(--accent); }
+  .net-negative { color:var(--danger); }
+
+  /* WORKER */
+  .worker-row { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--border); }
+  .worker-row:last-child { border-bottom:none; }
+
+  /* scrollbar */
+  ::-webkit-scrollbar { width:4px; }
+  ::-webkit-scrollbar-track { background:transparent; }
+  ::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+
+  /* category dots */
+  .cat-dot { width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:6px; }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div>
+    <div class="header-title">ContractLedger</div>
+    <div class="header-proj" id="activeProjectLabel">No project selected</div>
+  </div>
+  <div class="header-actions">
+    <div class="icon-btn" onclick="openBackupModal()" title="Backup">📤</div>
+    <div class="icon-btn" onclick="openProjectModal()" title="Projects">🏗️</div>
+  </div>
+</div>
+
+<!-- CONTENT PAGES -->
+<div class="content">
+
+  <!-- DASHBOARD PAGE -->
+  <div class="page active" id="page-dashboard">
+    <div id="no-project-banner" class="card" style="text-align:center;border-color:var(--warn);background:#1c1a0a">
+      <div style="font-size:24px;margin-bottom:6px">⚠️</div>
+      <div style="font-weight:600;margin-bottom:4px">No Project Selected</div>
+      <div class="card-sub">Tap 🏗️ in the header to create or select a project</div>
+    </div>
+
+    <div id="dashboard-content" style="display:none">
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-label">Total Invested</div>
+          <div class="stat-value green" id="dash-total-invest">₹0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Expenses</div>
+          <div class="stat-value warn" id="dash-total-expense">₹0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Balance</div>
+          <div class="stat-value" id="dash-balance">₹0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">This Week</div>
+          <div class="stat-value warn" id="dash-this-week">₹0</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-row" style="margin-bottom:8px">
+          <div class="card-label">Budget Usage</div>
+          <div style="font-family:var(--mono);font-size:12px" id="dash-budget-pct">0%</div>
+        </div>
+        <div class="progress-wrap">
+          <div class="progress-bar progress-green" id="dash-budget-bar" style="width:0%"></div>
+        </div>
+        <div class="card-row" style="margin-top:6px">
+          <div style="font-size:11px;color:var(--text3)" id="dash-budget-text">Expenses / Investment</div>
+        </div>
+      </div>
+
+      <div class="sec-header">
+        <div class="sec-title">Recent Activity</div>
+        <div class="sec-sub" id="dash-exp-count">0 entries</div>
+      </div>
+      <div id="dash-recent-list"></div>
+
+      <div class="card chart-wrap">
+        <div class="card-label" style="margin-bottom:10px">Last 7 Days Expenses</div>
+        <div class="bar-chart" id="dash-bar-chart"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- INVESTORS PAGE -->
+  <div class="page" id="page-investors">
+    <div class="sec-header">
+      <div class="sec-title">Investors</div>
+      <button class="btn btn-primary btn-sm" onclick="openAddInvestorModal()">+ Add</button>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-label">Total Capital</div>
+        <div class="stat-value green" id="inv-total">₹0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Investors</div>
+        <div class="stat-value" id="inv-count">0</div>
+      </div>
+    </div>
+
+    <div id="investors-list"></div>
+  </div>
+
+  <!-- EXPENSES PAGE -->
+  <div class="page" id="page-expenses">
+    <div class="sec-header">
+      <div class="sec-title">Expenses</div>
+      <button class="btn btn-primary btn-sm" onclick="openAddExpenseModal()">+ Add</button>
+    </div>
+
+    <div style="margin-bottom:12px;overflow-x:auto;white-space:nowrap;padding-bottom:4px">
+      <span class="proj-chip active" onclick="filterExpenses('all')" id="cat-all">All</span>
+      <span class="proj-chip" onclick="filterExpenses('material')" id="cat-material">Material</span>
+      <span class="proj-chip" onclick="filterExpenses('labor')" id="cat-labor">Labor</span>
+      <span class="proj-chip" onclick="filterExpenses('machinery')" id="cat-machinery">Machinery</span>
+      <span class="proj-chip" onclick="filterExpenses('transport')" id="cat-transport">Transport</span>
+      <span class="proj-chip" onclick="filterExpenses('other')" id="cat-other">Other</span>
+    </div>
+
+    <div id="expenses-list"></div>
+  </div>
+
+  <!-- WORKERS PAGE -->
+  <div class="page" id="page-workers">
+    <div class="sec-header">
+      <div class="sec-title">Workers & Wages</div>
+      <button class="btn btn-primary btn-sm" onclick="openAddWorkerModal()">+ Add</button>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-label">Total Workers</div>
+        <div class="stat-value" id="wrk-count">0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total Paid</div>
+        <div class="stat-value warn" id="wrk-total-paid">₹0</div>
+      </div>
+    </div>
+
+    <div class="sec-header" style="margin-top:8px">
+      <div class="sec-title" style="font-size:14px">Log Daily Wages</div>
+      <button class="btn btn-outline btn-sm" onclick="openWageLogModal()">Log Wages</button>
+    </div>
+
+    <div id="workers-list"></div>
+
+    <div class="sec-header" style="margin-top:16px">
+      <div class="sec-title" style="font-size:14px">Wage History</div>
+    </div>
+    <div id="wage-log-list"></div>
+  </div>
+
+  <!-- REPORTS PAGE -->
+  <div class="page" id="page-reports">
+    <div class="sec-title" style="margin-bottom:16px">Project Reports</div>
+
+    <div class="report-highlight">
+      <div class="big" id="rep-net">₹0</div>
+      <div class="label">NET BALANCE (INVESTED - SPENT)</div>
+    </div>
+
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-label">Total Invested</div>
+        <div class="stat-value green" id="rep-invest">₹0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Total Expenses</div>
+        <div class="stat-value warn" id="rep-expenses">₹0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Labor Cost</div>
+        <div class="stat-value" id="rep-labor">₹0</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Material Cost</div>
+        <div class="stat-value" id="rep-material">₹0</div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-bottom:12px">
+      <div class="card-label" style="margin-bottom:10px">Expense Breakdown</div>
+      <div id="rep-breakdown"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-label" style="margin-bottom:10px">Investor Shares</div>
+      <table class="sum-table" id="rep-investor-table">
+        <thead><tr><th>Investor</th><th>Invested</th><th>Share %</th></tr></thead>
+        <tbody id="rep-investor-tbody"></tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <div class="card-label" style="margin-bottom:10px">Monthly Summary</div>
+      <div id="rep-monthly"></div>
+    </div>
+
+    <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap">
+      <button class="btn btn-primary btn-full" onclick="exportReport('pdf')">📄 Export PDF Report</button>
+      <button class="btn btn-outline btn-full" onclick="exportReport('csv')">📊 Export CSV Data</button>
+    </div>
+  </div>
+
+</div><!-- end .content -->
+
+<!-- BOTTOM TABS -->
+<div class="tabs">
+  <button class="tab active" onclick="showPage('dashboard',this)">
+    <span class="tab-icon">📊</span>Dashboard
+  </button>
+  <button class="tab" onclick="showPage('investors',this)">
+    <span class="tab-icon">💰</span>Investors
+  </button>
+  <button class="tab" onclick="showPage('expenses',this)">
+    <span class="tab-icon">📋</span>Expenses
+  </button>
+  <button class="tab" onclick="showPage('workers',this)">
+    <span class="tab-icon">👷</span>Workers
+  </button>
+  <button class="tab" onclick="showPage('reports',this)">
+    <span class="tab-icon">📈</span>Reports
+  </button>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<!-- PROJECT MODAL -->
+<div class="modal-overlay" id="modal-project">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Projects</div>
+    <div class="form-section">
+      <label class="form-label">New Project</label>
+      <input class="form-input" id="new-proj-name" placeholder="e.g. Canal Phase-1, NH Road Block-A">
+    </div>
+    <div class="form-row" style="margin-bottom:12px">
+      <div>
+        <label class="form-label">Type</label>
+        <select class="form-select" id="new-proj-type">
+          <option>Canal</option>
+          <option>Road</option>
+          <option>Building</option>
+          <option>Bridge</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div>
+        <label class="form-label">Location</label>
+        <input class="form-input" id="new-proj-location" placeholder="Village / Mandal">
+      </div>
+    </div>
+    <button class="btn btn-primary btn-full" style="margin-bottom:16px" onclick="createProject()">Create Project</button>
+    <hr class="divider">
+    <div class="card-label" style="margin-bottom:8px">Select Active Project</div>
+    <div id="project-list"></div>
+    <button class="btn btn-outline btn-full" style="margin-top:12px" onclick="closeModal('modal-project')">Close</button>
+  </div>
+</div>
+
+<!-- ADD INVESTOR MODAL -->
+<div class="modal-overlay" id="modal-add-investor">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Add Investor</div>
+    <div class="form-section">
+      <label class="form-label">Full Name</label>
+      <input class="form-input" id="inv-name" placeholder="Investor name">
+    </div>
+    <div class="form-section">
+      <label class="form-label">Phone</label>
+      <input class="form-input" id="inv-phone" placeholder="Mobile number" type="tel">
+    </div>
+    <div class="form-section">
+      <label class="form-label">Investment Amount (₹)</label>
+      <input class="form-input" id="inv-amount" placeholder="0" type="number">
+    </div>
+    <div class="form-section">
+      <label class="form-label">Date</label>
+      <input class="form-input" id="inv-date" type="date">
+    </div>
+    <div class="form-section">
+      <label class="form-label">Notes</label>
+      <textarea class="form-textarea" id="inv-notes" placeholder="Payment mode, remarks..."></textarea>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-outline" style="flex:1" onclick="closeModal('modal-add-investor')">Cancel</button>
+      <button class="btn btn-primary" style="flex:2" onclick="saveInvestor()">Save Investor</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD EXPENSE MODAL -->
+<div class="modal-overlay" id="modal-add-expense">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Add Expense</div>
+    <div class="form-section">
+      <label class="form-label">Description</label>
+      <input class="form-input" id="exp-desc" placeholder="What was purchased/spent">
+    </div>
+    <div class="form-row">
+      <div>
+        <label class="form-label">Amount (₹)</label>
+        <input class="form-input" id="exp-amount" placeholder="0" type="number">
+      </div>
+      <div>
+        <label class="form-label">Category</label>
+        <select class="form-select" id="exp-category">
+          <option value="material">Material</option>
+          <option value="labor">Labor</option>
+          <option value="machinery">Machinery</option>
+          <option value="transport">Transport</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row" style="margin-top:10px">
+      <div>
+        <label class="form-label">Date</label>
+        <input class="form-input" id="exp-date" type="date">
+      </div>
+      <div>
+        <label class="form-label">Paid To</label>
+        <input class="form-input" id="exp-paid-to" placeholder="Vendor / Person">
+      </div>
+    </div>
+    <div class="form-section" style="margin-top:10px">
+      <label class="form-label">Notes / Bill No.</label>
+      <textarea class="form-textarea" id="exp-notes" placeholder="Bill number, remarks..."></textarea>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-outline" style="flex:1" onclick="closeModal('modal-add-expense')">Cancel</button>
+      <button class="btn btn-primary" style="flex:2" onclick="saveExpense()">Save Expense</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD WORKER MODAL -->
+<div class="modal-overlay" id="modal-add-worker">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Add Worker</div>
+    <div class="form-section">
+      <label class="form-label">Worker Name</label>
+      <input class="form-input" id="wrk-name" placeholder="Full name">
+    </div>
+    <div class="form-row">
+      <div>
+        <label class="form-label">Role</label>
+        <input class="form-input" id="wrk-role" placeholder="Mason, Helper...">
+      </div>
+      <div>
+        <label class="form-label">Daily Wage (₹)</label>
+        <input class="form-input" id="wrk-wage" placeholder="0" type="number">
+      </div>
+    </div>
+    <div class="form-section" style="margin-top:10px">
+      <label class="form-label">Phone</label>
+      <input class="form-input" id="wrk-phone" placeholder="Mobile number" type="tel">
+    </div>
+    <div style="display:flex;gap:10px;margin-top:10px">
+      <button class="btn btn-outline" style="flex:1" onclick="closeModal('modal-add-worker')">Cancel</button>
+      <button class="btn btn-primary" style="flex:2" onclick="saveWorker()">Save Worker</button>
+    </div>
+  </div>
+</div>
+
+<!-- WAGE LOG MODAL -->
+<div class="modal-overlay" id="modal-wage-log">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Log Daily Wages</div>
+    <div class="form-section">
+      <label class="form-label">Date</label>
+      <input class="form-input" id="wage-date" type="date">
+    </div>
+    <div class="card-label" style="margin-bottom:8px">Workers Present</div>
+    <div id="wage-worker-checkboxes"></div>
+    <div class="form-section" style="margin-top:12px">
+      <label class="form-label">Notes</label>
+      <input class="form-input" id="wage-notes" placeholder="Any remarks...">
+    </div>
+    <div style="display:flex;gap:10px;margin-top:12px">
+      <button class="btn btn-outline" style="flex:1" onclick="closeModal('modal-wage-log')">Cancel</button>
+      <button class="btn btn-primary" style="flex:2" onclick="saveWageLog()">Save Wages</button>
+    </div>
+  </div>
+</div>
+
+<!-- BACKUP MODAL -->
+<div class="modal-overlay" id="modal-backup">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Backup & Restore</div>
+    <div class="card" style="margin-bottom:12px;border-color:var(--accent2)">
+      <div class="card-label" style="margin-bottom:6px">Last Backup</div>
+      <div id="last-backup-time" style="font-family:var(--mono);font-size:13px">Never</div>
+    </div>
+    <button class="btn btn-primary btn-full" style="margin-bottom:10px" onclick="doBackup()">📤 Export Full Backup (JSON)</button>
+    <button class="btn btn-outline btn-full" style="margin-bottom:10px" onclick="document.getElementById('restore-file').click()">📥 Restore from Backup</button>
+    <input type="file" id="restore-file" accept=".json" style="display:none" onchange="doRestore(this)">
+    <hr class="divider">
+    <div class="card-label" style="margin-bottom:8px">Auto-Backup Reminder</div>
+    <div class="card-sub" style="margin-bottom:12px">Export backup daily before closing app. Share to Google Drive or WhatsApp for safety.</div>
+    <button class="btn btn-outline btn-full" onclick="exportAllCSV()">📊 Export All Data as CSV</button>
+    <button class="btn btn-outline btn-full" style="margin-top:8px" onclick="closeModal('modal-backup')">Close</button>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// DATA LAYER
+// ============================================================
+const DB = {
+  get: (k) => { try { return JSON.parse(localStorage.getItem(k)) || null; } catch(e){ return null; } },
+  set: (k,v) => localStorage.setItem(k, JSON.stringify(v)),
+  getAll: () => {
+    const keys = Object.keys(localStorage);
+    const out = {};
+    keys.forEach(k => { try { out[k] = JSON.parse(localStorage.getItem(k)); } catch(e){} });
+    return out;
+  }
+};
+
+// App State
+let state = {
+  activeProject: DB.get('activeProject') || null,
+  projects: DB.get('projects') || [],
+  filterCat: 'all'
+};
+
+function saveState() {
+  DB.set('activeProject', state.activeProject);
+  DB.set('projects', state.projects);
+}
+
+function getProjectData(pid) {
+  return DB.get('proj_'+pid) || { investors:[], expenses:[], workers:[], wageLogs:[] };
+}
+function saveProjectData(pid, data) {
+  DB.set('proj_'+pid, data);
+}
+function getPD() {
+  if(!state.activeProject) return null;
+  return getProjectData(state.activeProject);
+}
+function savePD(data) {
+  if(!state.activeProject) return;
+  saveProjectData(state.activeProject, data);
+}
+
+// ============================================================
+// HELPERS
+// ============================================================
+function fmt(n) { return '₹'+Number(n||0).toLocaleString('en-IN'); }
+function fmtD(d) { if(!d) return ''; const dt = new Date(d); return dt.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'2-digit'}); }
+function today() { return new Date().toISOString().split('T')[0]; }
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+function sum(arr, k) { return arr.reduce((a,b)=>a+(Number(b[k])||0),0); }
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+const CAT_COLORS = { material:'#60a5fa', labor:'#4ade80', machinery:'#fbbf24', transport:'#f87171', other:'#c084fc' };
+const CAT_ICONS = { material:'🪨', labor:'👷', machinery:'⚙️', transport:'🚛', other:'📌' };
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function showPage(name, tab) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  if(tab) tab.classList.add('active');
+  refreshPage(name);
+}
+
+function refreshPage(name) {
+  switch(name) {
+    case 'dashboard': renderDashboard(); break;
+    case 'investors': renderInvestors(); break;
+    case 'expenses': renderExpenses(); break;
+    case 'workers': renderWorkers(); break;
+    case 'reports': renderReports(); break;
+  }
+}
+
+function refreshAll() {
+  const active = document.querySelector('.page.active');
+  if(active) refreshPage(active.id.replace('page-',''));
+  const proj = state.projects.find(p=>p.id===state.activeProject);
+  document.getElementById('activeProjectLabel').textContent = proj ? proj.name+' · '+proj.type : 'No project selected';
+}
+
+// ============================================================
+// MODALS
+// ============================================================
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+document.querySelectorAll('.modal-overlay').forEach(o=>{
+  o.addEventListener('click', function(e){ if(e.target===this) this.classList.remove('open'); });
+});
+
+function openProjectModal() {
+  renderProjectList();
+  openModal('modal-project');
+}
+function openAddInvestorModal() {
+  if(!checkProject()) return;
+  document.getElementById('inv-date').value = today();
+  openModal('modal-add-investor');
+}
+function openAddExpenseModal() {
+  if(!checkProject()) return;
+  document.getElementById('exp-date').value = today();
+  openModal('modal-add-expense');
+}
+function openAddWorkerModal() {
+  if(!checkProject()) return;
+  openModal('modal-add-worker');
+}
+function openWageLogModal() {
+  if(!checkProject()) return;
+  document.getElementById('wage-date').value = today();
+  renderWageCheckboxes();
+  openModal('modal-wage-log');
+}
+function openBackupModal() {
+  const lb = DB.get('lastBackup');
+  document.getElementById('last-backup-time').textContent = lb ? new Date(lb).toLocaleString() : 'Never';
+  openModal('modal-backup');
+}
+
+function checkProject() {
+  if(!state.activeProject) { showToast('⚠️ Please select a project first'); openProjectModal(); return false; }
+  return true;
+}
+
+// ============================================================
+// PROJECTS
+// ============================================================
+function createProject() {
+  const name = document.getElementById('new-proj-name').value.trim();
+  if(!name) { showToast('Enter project name'); return; }
+  const proj = {
+    id: uid(), name,
+    type: document.getElementById('new-proj-type').value,
+    location: document.getElementById('new-proj-location').value.trim(),
+    createdAt: today()
+  };
+  state.projects.push(proj);
+  saveState();
+  selectProject(proj.id);
+  document.getElementById('new-proj-name').value = '';
+  document.getElementById('new-proj-location').value = '';
+  renderProjectList();
+  showToast('✅ Project created');
+}
+
+function selectProject(id) {
+  state.activeProject = id;
+  saveState();
+  renderProjectList();
+  refreshAll();
+}
+
+function deleteProject(id) {
+  if(!confirm('Delete this project and ALL its data? This cannot be undone.')) return;
+  state.projects = state.projects.filter(p=>p.id!==id);
+  localStorage.removeItem('proj_'+id);
+  if(state.activeProject===id) state.activeProject = state.projects[0]?.id||null;
+  saveState(); renderProjectList(); refreshAll();
+  showToast('Project deleted');
+}
+
+function renderProjectList() {
+  const el = document.getElementById('project-list');
+  if(!state.projects.length) { el.innerHTML='<div class="empty-text" style="font-size:12px;color:var(--text3)">No projects yet</div>'; return; }
+  el.innerHTML = state.projects.map(p=>`
+    <div class="list-item" style="${p.id===state.activeProject?'border-color:var(--accent2);background:#0d1f14':''}">
+      <div class="list-item-left" onclick="selectProject('${p.id}')" style="cursor:pointer">
+        <div class="list-item-title">${p.name} ${p.id===state.activeProject?'<span class="badge badge-green">Active</span>':''}</div>
+        <div class="list-item-sub">${p.type} · ${p.location||'—'} · ${fmtD(p.createdAt)}</div>
+      </div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <button class="btn btn-outline btn-sm" onclick="selectProject('${p.id}')">Select</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteProject('${p.id}')">🗑️</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+function renderDashboard() {
+  const pd = getPD();
+  const hasPD = !!pd;
+  document.getElementById('no-project-banner').style.display = hasPD ? 'none' : 'block';
+  document.getElementById('dashboard-content').style.display = hasPD ? 'block' : 'none';
+  if(!hasPD) return;
+
+  const totalInvest = sum(pd.investors,'amount');
+  const totalExp = sum(pd.expenses,'amount');
+  const totalWages = sum(pd.wageLogs,'totalAmount');
+  const grandExp = totalExp + totalWages;
+  const balance = totalInvest - grandExp;
+
+  const weekAgo = new Date(); weekAgo.setDate(weekAgo.getDate()-7);
+  const thisWeek = pd.expenses.filter(e=>new Date(e.date)>=weekAgo).reduce((a,b)=>a+(Number(b.amount)||0),0);
+
+  document.getElementById('dash-total-invest').textContent = fmt(totalInvest);
+  document.getElementById('dash-total-expense').textContent = fmt(grandExp);
+  const balEl = document.getElementById('dash-balance');
+  balEl.textContent = fmt(balance);
+  balEl.className = 'stat-value '+(balance>=0?'green':'danger');
+  document.getElementById('dash-this-week').textContent = fmt(thisWeek);
+
+  const pct = totalInvest>0 ? Math.min(100, Math.round(grandExp/totalInvest*100)) : 0;
+  document.getElementById('dash-budget-pct').textContent = pct+'%';
+  const bar = document.getElementById('dash-budget-bar');
+  bar.style.width = pct+'%';
+  bar.className = 'progress-bar '+(pct<60?'progress-green':pct<85?'progress-warn':'progress-danger');
+  document.getElementById('dash-budget-text').textContent = fmt(grandExp)+' of '+fmt(totalInvest);
+
+  const allActivity = [...pd.expenses].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,5);
+  const recentEl = document.getElementById('dash-recent-list');
+  if(!allActivity.length) {
+    recentEl.innerHTML = '<div class="empty"><div class="empty-icon">📭</div><div class="empty-text">No expenses yet</div></div>';
+  } else {
+    recentEl.innerHTML = allActivity.map(e=>`
+      <div class="list-item">
+        <div class="list-item-left">
+          <div class="list-item-title">${CAT_ICONS[e.category]||'📌'} ${e.description}</div>
+          <div class="list-item-sub">${e.paidTo||''} · <span class="badge badge-blue">${e.category}</span></div>
+        </div>
+        <div class="list-item-right">
+          <div class="list-item-amount">${fmt(e.amount)}</div>
+          <div class="list-item-date">${fmtD(e.date)}</div>
+        </div>
+      </div>
+    `).join('');
+  }
+  document.getElementById('dash-exp-count').textContent = pd.expenses.length+' entries';
+
+  // Bar chart - last 7 days
+  const chartEl = document.getElementById('dash-bar-chart');
+  const days=[];
+  for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);days.push(d.toISOString().split('T')[0]);}
+  const dayTotals = days.map(d=>({
+    d, v: pd.expenses.filter(e=>e.date===d).reduce((a,b)=>a+(Number(b.amount)||0),0)
+  }));
+  const maxV = Math.max(...dayTotals.map(x=>x.v),1);
+  chartEl.innerHTML = dayTotals.map(({d,v})=>{
+    const h = Math.max(4, Math.round(v/maxV*80));
+    const label = new Date(d).toLocaleDateString('en-IN',{weekday:'short'}).slice(0,3);
+    return `<div class="bar-col">
+      <div class="bar-val">${v>0?'₹'+Math.round(v/1000)+'K':''}</div>
+      <div class="bar" style="height:${h}px;background:${v>0?'var(--accent2)':'var(--border)'}"></div>
+      <div class="bar-label">${label}</div>
+    </div>`;
+  }).join('');
+}
+
+// ============================================================
+// INVESTORS
+// ============================================================
+function saveInvestor() {
+  const name = document.getElementById('inv-name').value.trim();
+  const amount = parseFloat(document.getElementById('inv-amount').value)||0;
+  if(!name||!amount) { showToast('Enter name and amount'); return; }
+  const pd = getPD();
+  pd.investors.push({
+    id:uid(), name,
+    phone: document.getElementById('inv-phone').value.trim(),
+    amount, date: document.getElementById('inv-date').value,
+    notes: document.getElementById('inv-notes').value.trim()
+  });
+  savePD(pd);
+  closeModal('modal-add-investor');
+  ['inv-name','inv-phone','inv-amount','inv-notes'].forEach(i=>document.getElementById(i).value='');
+  renderInvestors(); showToast('✅ Investor saved');
+}
+
+function deleteInvestor(id) {
+  if(!confirm('Delete this investor?')) return;
+  const pd=getPD(); pd.investors=pd.investors.filter(i=>i.id!==id); savePD(pd); renderInvestors();
+}
+
+function renderInvestors() {
+  const pd=getPD();
+  if(!pd){document.getElementById('investors-list').innerHTML=''; return;}
+  const total=sum(pd.investors,'amount');
+  document.getElementById('inv-total').textContent=fmt(total);
+  document.getElementById('inv-count').textContent=pd.investors.length;
+  const el=document.getElementById('investors-list');
+  if(!pd.investors.length){
+    el.innerHTML='<div class="empty"><div class="empty-icon">💰</div><div class="empty-text">No investors added yet</div></div>';
+    return;
+  }
+  el.innerHTML=pd.investors.map(inv=>{
+    const pct=total>0?Math.round(inv.amount/total*100):0;
+    return `<div class="list-item">
+      <div class="list-item-left">
+        <div class="list-item-title">${inv.name}</div>
+        <div class="list-item-sub">${inv.phone||'—'} · ${fmtD(inv.date)}</div>
+        <div class="progress-wrap" style="margin-top:6px;width:100px"><div class="progress-bar progress-green" style="width:${pct}%"></div></div>
+        <div style="font-size:10px;color:var(--text3);margin-top:2px">${pct}% share</div>
+      </div>
+      <div class="list-item-right">
+        <div class="list-item-amount green">${fmt(inv.amount)}</div>
+        <div class="list-item-date">${inv.notes||''}</div>
+        <button class="btn btn-danger btn-sm" style="margin-top:6px" onclick="deleteInvestor('${inv.id}')">🗑️</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ============================================================
+// EXPENSES
+// ============================================================
+function saveExpense() {
+  const desc = document.getElementById('exp-desc').value.trim();
+  const amount = parseFloat(document.getElementById('exp-amount').value)||0;
+  if(!desc||!amount) { showToast('Enter description and amount'); return; }
+  const pd=getPD();
+  pd.expenses.push({
+    id:uid(), description:desc, amount,
+    category: document.getElementById('exp-category').value,
+    date: document.getElementById('exp-date').value,
+    paidTo: document.getElementById('exp-paid-to').value.trim(),
+    notes: document.getElementById('exp-notes').value.trim()
+  });
+  savePD(pd);
+  closeModal('modal-add-expense');
+  ['exp-desc','exp-amount','exp-paid-to','exp-notes'].forEach(i=>document.getElementById(i).value='');
+  renderExpenses(); showToast('✅ Expense saved');
+}
+
+function deleteExpense(id) {
+  if(!confirm('Delete this expense?')) return;
+  const pd=getPD(); pd.expenses=pd.expenses.filter(e=>e.id!==id); savePD(pd); renderExpenses();
+}
+
+function filterExpenses(cat) {
+  state.filterCat=cat;
+  document.querySelectorAll('[id^="cat-"]').forEach(el=>el.classList.remove('active'));
+  document.getElementById('cat-'+cat).classList.add('active');
+  renderExpenses();
+}
+
+function renderExpenses() {
+  const pd=getPD();
+  const el=document.getElementById('expenses-list');
+  if(!pd){el.innerHTML='';return;}
+  const list=state.filterCat==='all'?pd.expenses:pd.expenses.filter(e=>e.category===state.filterCat);
+  const sorted=[...list].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  if(!sorted.length){
+    el.innerHTML='<div class="empty"><div class="empty-icon">📭</div><div class="empty-text">No expenses in this category</div></div>';
+    return;
+  }
+  const totalShown=sum(sorted,'amount');
+  el.innerHTML=`<div class="card" style="margin-bottom:10px;padding:10px 14px">
+    <div class="card-row"><div class="card-label">Showing ${sorted.length} items</div><div style="font-family:var(--mono);font-weight:500;color:var(--warn)">${fmt(totalShown)}</div></div>
+  </div>`+sorted.map(e=>`
+    <div class="list-item">
+      <div class="list-item-left">
+        <div class="list-item-title"><span class="cat-dot" style="background:${CAT_COLORS[e.category]||'#888'}"></span>${e.description}</div>
+        <div class="list-item-sub">${e.paidTo||'—'} · ${e.notes||''}</div>
+        <div style="margin-top:4px"><span class="badge badge-blue">${e.category}</span></div>
+      </div>
+      <div class="list-item-right">
+        <div class="list-item-amount">${fmt(e.amount)}</div>
+        <div class="list-item-date">${fmtD(e.date)}</div>
+        <button class="btn btn-danger btn-sm" style="margin-top:6px" onclick="deleteExpense('${e.id}')">🗑️</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ============================================================
+// WORKERS
+// ============================================================
+function saveWorker() {
+  const name=document.getElementById('wrk-name').value.trim();
+  const wage=parseFloat(document.getElementById('wrk-wage').value)||0;
+  if(!name) { showToast('Enter worker name'); return; }
+  const pd=getPD();
+  pd.workers.push({ id:uid(), name, role:document.getElementById('wrk-role').value.trim(), dailyWage:wage, phone:document.getElementById('wrk-phone').value.trim(), active:true });
+  savePD(pd);
+  closeModal('modal-add-worker');
+  ['wrk-name','wrk-role','wrk-wage','wrk-phone'].forEach(i=>document.getElementById(i).value='');
+  renderWorkers(); showToast('✅ Worker added');
+}
+
+function deleteWorker(id) {
+  if(!confirm('Remove this worker?')) return;
+  const pd=getPD(); pd.workers=pd.workers.filter(w=>w.id!==id); savePD(pd); renderWorkers();
+}
+
+function renderWageCheckboxes() {
+  const pd=getPD(); if(!pd) return;
+  const el=document.getElementById('wage-worker-checkboxes');
+  if(!pd.workers.length) { el.innerHTML='<div class="empty-text" style="font-size:12px;color:var(--text3)">No workers added yet</div>'; return; }
+  el.innerHTML=pd.workers.map(w=>`
+    <div class="worker-row">
+      <div>
+        <div style="font-weight:500">${w.name}</div>
+        <div style="font-size:11px;color:var(--text3)">${w.role||''} · ${fmt(w.dailyWage)}/day</div>
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer">
+        <input type="checkbox" id="wc-${w.id}" value="${w.id}" style="width:18px;height:18px;accent-color:var(--accent)">
+        <span style="font-family:var(--mono);font-size:13px">${fmt(w.dailyWage)}</span>
+      </label>
+    </div>
+  `).join('');
+}
+
+function saveWageLog() {
+  const pd=getPD(); if(!pd) return;
+  const date=document.getElementById('wage-date').value;
+  const checked=pd.workers.filter(w=>document.getElementById('wc-'+w.id)?.checked);
+  if(!checked.length) { showToast('Select at least one worker'); return; }
+  const totalAmount=checked.reduce((a,w)=>a+(Number(w.dailyWage)||0),0);
+  pd.wageLogs.push({ id:uid(), date, workers:checked.map(w=>({id:w.id,name:w.name,amount:w.dailyWage})), totalAmount, notes:document.getElementById('wage-notes').value.trim() });
+  savePD(pd); closeModal('modal-wage-log'); renderWorkers(); showToast('✅ Wages logged: '+fmt(totalAmount));
+}
+
+function renderWorkers() {
+  const pd=getPD();
+  if(!pd){ document.getElementById('workers-list').innerHTML=''; document.getElementById('wage-log-list').innerHTML=''; return; }
+  const totalPaid=sum(pd.wageLogs,'totalAmount');
+  document.getElementById('wrk-count').textContent=pd.workers.length;
+  document.getElementById('wrk-total-paid').textContent=fmt(totalPaid);
+
+  const wEl=document.getElementById('workers-list');
+  if(!pd.workers.length) { wEl.innerHTML='<div class="empty"><div class="empty-icon">👷</div><div class="empty-text">No workers added</div></div>'; }
+  else {
+    wEl.innerHTML=pd.workers.map(w=>` 
+      <div class="list-item">
+        <div class="list-item-left">
+          <div class="list-item-title">👷 ${w.name}</div>
+          <div class="list-item-sub">${w.role||'Worker'} · ${w.phone||'—'}</div>
+        </div>
+        <div class="list-item-right">
+          <div class="list-item-amount green">${fmt(w.dailyWage)}/day</div>
+          <button class="btn btn-danger btn-sm" style="margin-top:6px" onclick="deleteWorker('${w.id}')">🗑️</button>
+        </div>
+      </div>`).join('');
+  }
+
+  const lgEl=document.getElementById('wage-log-list');
+  const logs=[...pd.wageLogs].sort((a,b)=>new Date(b.date)-new Date(a.date));
+  if(!logs.length) { lgEl.innerHTML='<div class="empty-text" style="font-size:12px;color:var(--text3);padding:10px 0">No wage logs yet</div>'; return; }
+  lgEl.innerHTML=logs.slice(0,20).map(l=>`
+    <div class="list-item">
+      <div class="list-item-left">
+        <div class="list-item-title">📅 ${fmtD(l.date)}</div>
+        <div class="list-item-sub">${l.workers.map(w=>w.name).join(', ')}</div>
+        <div style="font-size:11px;color:var(--text3)">${l.notes||''}</div>
+      </div>
+      <div class="list-item-right">
+        <div class="list-item-amount">${fmt(l.totalAmount)}</div>
+        <div class="list-item-date">${l.workers.length} workers</div>
+      </div>
+    </div>`).join('');
+}
+
+// ============================================================
+// REPORTS
+// ============================================================
+function renderReports() {
+  const pd=getPD(); if(!pd){ return; }
+  const totalInvest=sum(pd.investors,'amount');
+  const totalExp=sum(pd.expenses,'amount');
+  const totalWages=sum(pd.wageLogs,'totalAmount');
+  const grandExp=totalExp+totalWages;
+  const net=totalInvest-grandExp;
+
+  document.getElementById('rep-net').textContent=fmt(net);
+  document.getElementById('rep-net').className='big '+(net>=0?'net-positive':'net-negative');
+  document.getElementById('rep-invest').textContent=fmt(totalInvest);
+  document.getElementById('rep-expenses').textContent=fmt(grandExp);
+
+  const laborCat=pd.expenses.filter(e=>e.category==='labor').reduce((a,b)=>a+(Number(b.amount)||0),0)+totalWages;
+  const matCat=pd.expenses.filter(e=>e.category==='material').reduce((a,b)=>a+(Number(b.amount)||0),0);
+  document.getElementById('rep-labor').textContent=fmt(laborCat);
+  document.getElementById('rep-material').textContent=fmt(matCat);
+
+  // Breakdown
+  const cats=['material','labor','machinery','transport','other'];
+  const breakdown=document.getElementById('rep-breakdown');
+  breakdown.innerHTML=cats.map(c=>{
+    const v=c==='labor'?laborCat:pd.expenses.filter(e=>e.category===c).reduce((a,b)=>a+(Number(b.amount)||0),0);
+    const pct=grandExp>0?Math.round(v/grandExp*100):0;
+    return `<div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px">
+        <div style="font-size:12px;color:var(--text2)">${CAT_ICONS[c]} ${c.charAt(0).toUpperCase()+c.slice(1)}</div>
+        <div style="font-family:var(--mono);font-size:12px">${fmt(v)} <span style="color:var(--text3)">(${pct}%)</span></div>
+      </div>
+      <div class="progress-wrap"><div class="progress-bar" style="width:${pct}%;background:${CAT_COLORS[c]}"></div></div>
+    </div>`;
+  }).join('');
+
+  // Investor table
+  const tbody=document.getElementById('rep-investor-tbody');
+  tbody.innerHTML=pd.investors.map(inv=>{
+    const pct=totalInvest>0?Math.round(inv.amount/totalInvest*100):0;
+    return `<tr><td>${inv.name}</td><td>${fmt(inv.amount)}</td><td>${pct}%</td></tr>`;
+  }).join('');
+
+  // Monthly summary
+  const monthly={};
+  pd.expenses.forEach(e=>{
+    const m=e.date?e.date.slice(0,7):'unknown';
+    monthly[m]=(monthly[m]||0)+(Number(e.amount)||0);
+  });
+  pd.wageLogs.forEach(l=>{
+    const m=l.date?l.date.slice(0,7):'unknown';
+    monthly[m]=(monthly[m]||0)+(Number(l.totalAmount)||0);
+  });
+  const mEl=document.getElementById('rep-monthly');
+  const months=Object.entries(monthly).sort((a,b)=>b[0].localeCompare(a[0]));
+  if(!months.length){ mEl.innerHTML='<div class="empty-text" style="font-size:12px;color:var(--text3)">No data</div>'; return; }
+  mEl.innerHTML='<table class="sum-table"><thead><tr><th>Month</th><th>Expenses</th></tr></thead><tbody>'+
+    months.map(([m,v])=>`<tr><td>${m}</td><td>${fmt(v)}</td></tr>`).join('')+'</tbody></table>';
+}
+
+// ============================================================
+// EXPORT / BACKUP
+// ============================================================
+function doBackup() {
+  const allData = { version:1, exportedAt:new Date().toISOString(), projects:state.projects, data:{} };
+  state.projects.forEach(p=>{ allData.data[p.id]=getProjectData(p.id); });
+  const blob=new Blob([JSON.stringify(allData,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a'); a.href=url; a.download='contractledger_backup_'+today()+'.json'; a.click();
+  DB.set('lastBackup',new Date().toISOString());
+  showToast('✅ Backup exported!');
+}
+
+function doRestore(input) {
+  const file=input.files[0]; if(!file) return;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try {
+      const data=JSON.parse(e.target.result);
+      if(!data.projects) throw new Error('Invalid format');
+      if(!confirm('This will REPLACE all data. Continue?')) return;
+      state.projects=data.projects; state.activeProject=data.projects[0]?.id||null;
+      Object.entries(data.data||{}).forEach(([id,d])=>DB.set('proj_'+id,d));
+      saveState(); refreshAll(); closeModal('modal-backup');
+      showToast('✅ Restored successfully');
+    } catch(e) { showToast('❌ Invalid backup file'); }
+  };
+  reader.readAsText(file);
+  input.value='';
+}
+
+function exportAllCSV() {
+  const pd=getPD(); if(!pd){ showToast('No project selected'); return; }
+  const proj=state.projects.find(p=>p.id===state.activeProject);
+  let csv='ContractLedger Export\n';
+  csv+=`Project: ${proj?.name||''}\nDate: ${today()}\n\n`;
+  csv+='INVESTORS\nName,Amount,Date,Phone,Notes\n';
+  pd.investors.forEach(i=>{ csv+=`${i.name},${i.amount},${i.date},${i.phone||''},${i.notes||''}\n`; });
+  csv+='\nEXPENSES\nDate,Description,Amount,Category,PaidTo,Notes\n';
+  pd.expenses.forEach(e=>{ csv+=`${e.date},"${e.description}",${e.amount},${e.category},${e.paidTo||''},${e.notes||''}\n`; });
+  csv+='\nWAGE LOGS\nDate,Workers,Total,Notes\n';
+  pd.wageLogs.forEach(l=>{ csv+=`${l.date},"${l.workers.map(w=>w.name).join('; ')}",${l.totalAmount},${l.notes||''}\n`; });
+  const blob=new Blob([csv],{type:'text/csv'});
+  const url=URL.createObjectURL(blob); const a=document.createElement('a');
+  a.href=url; a.download=`${proj?.name||'project'}_data_${today()}.csv`; a.click();
+  showToast('✅ CSV exported!');
+}
+
+function exportReport(type) {
+  if(type==='csv') { exportAllCSV(); return; }
+  const pd=getPD(); if(!pd){ showToast('No project selected'); return; }
+  const proj=state.projects.find(p=>p.id===state.activeProject);
+  const totalInvest=sum(pd.investors,'amount');
+  const totalExp=sum(pd.expenses,'amount');
+  const totalWages=sum(pd.wageLogs,'totalAmount');
+  const grandExp=totalExp+totalWages;
+  const net=totalInvest-grandExp;
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>${proj?.name||'Report'}</title>
+  <style>body{font-family:Arial,sans-serif;max-width:800px;margin:40px auto;padding:20px;color:#1a1a1a}
+  h1{color:#1a3a2a}table{width:100%;border-collapse:collapse;margin:16px 0}
+  th,td{border:1px solid #ddd;padding:8px 12px;text-align:left}th{background:#f5f5f5}
+  .summary{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin:20px 0}
+  .scard{border:1px solid #ddd;border-radius:8px;padding:14px}
+  .scard .v{font-size:22px;font-weight:700}.green{color:#16a34a}.red{color:#dc2626}
+  @media print{body{margin:0}}</style></head><body>
+  <h1>📊 ${proj?.name||'Project'} — Report</h1>
+  <p style="color:#666">Generated: ${new Date().toLocaleString()} · Type: ${proj?.type||''} · Location: ${proj?.location||''}</p>
+  <div class="summary">
+    <div class="scard"><div>Total Invested</div><div class="v green">₹${totalInvest.toLocaleString('en-IN')}</div></div>
+    <div class="scard"><div>Total Expenses</div><div class="v" style="color:#d97706">₹${grandExp.toLocaleString('en-IN')}</div></div>
+    <div class="scard"><div>Net Balance</div><div class="v ${net>=0?'green':'red'}">₹${net.toLocaleString('en-IN')}</div></div>
+  </div>
+  <h2>Investors</h2><table><tr><th>Name</th><th>Phone</th><th>Amount</th><th>Date</th></tr>
+  ${pd.investors.map(i=>`<tr><td>${i.name}</td><td>${i.phone||'—'}</td><td>₹${Number(i.amount).toLocaleString('en-IN')}</td><td>${i.date||'—'}</td></tr>`).join('')}
+  </table>
+  <h2>Expenses (${pd.expenses.length} entries)</h2><table><tr><th>Date</th><th>Description</th><th>Category</th><th>Paid To</th><th>Amount</th></tr>
+  ${[...pd.expenses].sort((a,b)=>new Date(b.date)-new Date(a.date)).map(e=>`<tr><td>${e.date}</td><td>${e.description}</td><td>${e.category}</td><td>${e.paidTo||'—'}</td><td>₹${Number(e.amount).toLocaleString('en-IN')}</td></tr>`).join('')}
+  </table>
+  <h2>Wage Logs</h2><table><tr><th>Date</th><th>Workers</th><th>Total</th></tr>
+  ${[...pd.wageLogs].sort((a,b)=>new Date(b.date)-new Date(a.date)).map(l=>`<tr><td>${l.date}</td><td>${l.workers.map(w=>w.name).join(', ')}</td><td>₹${Number(l.totalAmount).toLocaleString('en-IN')}</td></tr>`).join('')}
+  </table>
+  <script>window.onload=function(){window.print()}<\/script></body></html>`;
+  const blob=new Blob([html],{type:'text/html'});
+  const url=URL.createObjectURL(blob); window.open(url,'_blank');
+  showToast('✅ PDF report opened');
+}
+
+// ============================================================
+// SERVICE WORKER (PWA)
+// ============================================================
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js').catch(()=>{});
+}
+
+// ============================================================
+// INIT
+// ============================================================
+refreshAll();
+// Auto backup reminder every 24h
+const lastBkp=DB.get('lastBackup');
+if(!lastBkp||new Date()-new Date(lastBkp)>86400000){
+  setTimeout(()=>showToast('💾 Reminder: Take daily backup!'),3000);
+}
+</script>
+</body>
+</html>
